@@ -13,6 +13,6 @@ void fft(complex double *, complex double *, long);
 void ifft(complex double *, complex double *, long);
 int pow2check(long);
 void print_complex(FILE *, complex double *, long);
-int all(int, char **);
+void bandpass(complex double *, short, short, long);
 
 #endif

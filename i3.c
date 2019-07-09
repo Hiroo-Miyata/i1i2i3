@@ -90,7 +90,10 @@ void rec_and_play(int socket)
     int send_data_index = MAX_SIZE; /* データの長さ */
     char recv_data[MAX_SIZE];       /* 送られたデータ格納 */
     int recv_data_index = MAX_SIZE; /* データの長さ */
+
     long n = 8192;
+    short lowpass = 300;
+    short highpass = 3500;
     sample_t *buf = calloc(sizeof(sample_t), n);
     complex double *X = calloc(sizeof(complex double), n);
     complex double *Y = calloc(sizeof(complex double), n);
@@ -104,6 +107,7 @@ void rec_and_play(int socket)
         sample_to_complex(buf, X, n);
         /* FFT -> Y */
         fft(X, Y, n);
+        bandpass(Y, lowpass, highpass, n);
         send(socket, send_data, send_data_index, 0);
 
         //送られてたデータを再生

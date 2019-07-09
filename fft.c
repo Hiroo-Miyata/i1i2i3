@@ -132,6 +132,22 @@ void fft(complex double *x,
     y[i] /= n;
 }
 
+void bandpass(complex double *y, short lowpass, short highpass, long n)
+{
+  if (lowpass > highpass || highpass > n / 2)
+  {
+    perror("EXIT_FAILURE");
+    return;
+  }
+  for (int i = 0; i < n; i++)
+  {
+    if (i < lowpass || (i > n / 2 - highpass && i < n / 2 + highpass) || i > n - lowpass)
+    {
+      y[i] = 0;
+    }
+  }
+}
+
 void ifft(complex double *y,
           complex double *x,
           long n)
