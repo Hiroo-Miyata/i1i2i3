@@ -96,6 +96,8 @@ void rec_and_play(int socket)
     sample_t *buf_recv = calloc(sizeof(sample_t), n);
     complex double *X = calloc(sizeof(complex double), n);
     complex double *Y = calloc(sizeof(complex double), n);
+    complex double *Xrecv = calloc(sizeof(complex double), n);
+    complex double *Yrecv = calloc(sizeof(complex double), n);
     fcmdr = popen(cmdr, "r");
     fcmdp = popen(cmdp, "w");
 
@@ -141,11 +143,11 @@ void rec_and_play(int socket)
         send(socket, Y, n, 0);
 
         //送られてたデータを再生
-        read(socket, Y, n);
+        read(socket, Yrecv, n);
         /* IFFT -> Z */
-        ifft(Y, X, n);
+        ifft(Yrecv, Xrecv, n);
         /* 標本の配列に変換 */
-        complex_to_sample(X, buf_recv, n);
+        complex_to_sample(Xrecv, buf_recv, n);
         //音の最初のズレを補正
         if (sound_diff != INT_MIN)
         {
