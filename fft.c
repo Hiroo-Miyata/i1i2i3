@@ -139,11 +139,11 @@ void bandpass(complex double *y, short lowpass, short highpass, long n)
     perror("EXIT_FAILURE");
     return;
   }
-  for (int i = 0; i < n; i++)
+  for (int i = 1; i < n; i++)
   {
-    if (i < lowpass || (i > n / 2 - highpass && i < n / 2 + highpass) || i > n - lowpass)
+    if (i < lowpass || (i > highpass && i < n - highpass) || i > n - lowpass)
     {
-      y[i] = 0;
+      y[i] = y[i] / 100;
     }
   }
 }

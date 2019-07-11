@@ -8,7 +8,6 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <complex.h>
-#include "fft.h"
 
 #define MAX_SIZE 1500
 
@@ -90,28 +89,16 @@ void rec_and_play(int socket)
     int send_data_index = MAX_SIZE; /* データの長さ */
     char recv_data[MAX_SIZE];       /* 送られたデータ格納 */
     int recv_data_index = MAX_SIZE; /* データの長さ */
-    long n = 8192;
-    sample_t *buf = calloc(sizeof(sample_t), n);
-    complex double *X = calloc(sizeof(complex double), n);
-    complex double *Y = calloc(sizeof(complex double), n);
+
     fcmdr = popen(cmdr, "r");
     fcmdp = popen(cmdp, "w");
     while (1)
     {
         //録音データを送る
         fread(send_data, 1, send_data_index, fcmdr);
-        /* 複素数の配列に変換 */
-        sample_to_complex(buf, X, n);
-        /* FFT -> Y */
-        fft(X, Y, n);
         send(socket, send_data, send_data_index, 0);
-
         //送られてたデータを再生
         read(socket, recv_data, recv_data_index);
-        /* IFFT -> Z */
-        ifft(Y, X, n);
-        /* 標本の配列に変換 */
-        complex_to_sample(X, buf, n);
         fwrite(recv_data, 1, recv_data_index, fcmdp);
     }
     pclose(fcmdr);

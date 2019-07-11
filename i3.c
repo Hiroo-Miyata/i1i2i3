@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -86,37 +87,72 @@ void rec_and_play(int socket)
     // 送受信変数
     FILE *fcmdr; /* 録音FILEパス */
     FILE *fcmdp;
-    char send_data[MAX_SIZE];       /* 録音データ格納 */
-    int send_data_index = MAX_SIZE; /* データの長さ */
-    char recv_data[MAX_SIZE];       /* 送られたデータ格納 */
-    int recv_data_index = MAX_SIZE; /* データの長さ */
 
-    long n = 8192;
-    short lowpass = 300;
-    short highpass = 3500;
+    long n = 8192 * 4;
+    short lowpass = 100 * n / 44100;
+    short highpass = 8000 * n / 44100;
     sample_t *buf = calloc(sizeof(sample_t), n);
+    sample_t *bufY = calloc(sizeof(sample_t), n);
     complex double *X = calloc(sizeof(complex double), n);
     complex double *Y = calloc(sizeof(complex double), n);
     fcmdr = popen(cmdr, "r");
     fcmdp = popen(cmdp, "w");
+
+    //訪れを検知する
+    int sound_diff = INT_MIN;
+    //雑音修正用変数
+    double s = 0;
+    double a = 0.1;
     while (1)
     {
         //録音データを送る
-        fread(send_data, 1, send_data_index, fcmdr);
+        int m = fread(buf, 1, n, fcmdr);
+        if (m != n)
+        {
+            perror("CANT_GET_ENOUGH_DATA");
+            exit(1);
+        }
+        for (int i = 0; i < n; i++)
+        {
+            double tmp = (1 - a) * buf[i] + a * s;
+            s = buf[i];
+            if (tmp < SHRT_MIN)
+            {
+                tmp = SHRT_MIN;
+            }
+            else if (tmp > SHRT_MAX)
+            {
+                tmp = SHRT_MAX;
+            }
+            bufY[i] = (sample_t)tmp;
+
+            // if (bufY[i] != buf[i])
+            // {
+            //     fprintf(stderr, "\n i: %d, buf[i]: %d, bufY[i]: %d \n", i, buf[i], bufY[i]);
+            //     exit(1);
+            // }
+        }
         /* 複素数の配列に変換 */
-        sample_to_complex(buf, X, n);
+        sample_to_complex(bufY, X, n);
         /* FFT -> Y */
         fft(X, Y, n);
         bandpass(Y, lowpass, highpass, n);
-        send(socket, send_data, send_data_index, 0);
+        send(socket, Y, n, 0);
 
         //送られてたデータを再生
-        read(socket, recv_data, recv_data_index);
+        read(socket, Y, n);
         /* IFFT -> Z */
         ifft(Y, X, n);
         /* 標本の配列に変換 */
         complex_to_sample(X, buf, n);
-        fwrite(recv_data, 1, recv_data_index, fcmdp);
+        //音の最初のズレを補正
+        if (sound_diff != INT_MIN)
+        {
+            buf[0] = (sound_diff + buf[0]) / 2;
+        }
+        sound_diff = buf[n - 1];
+        // 再生ファイルに出力
+        fwrite(buf, 1, n, fcmdp);
     }
     pclose(fcmdr);
 }
