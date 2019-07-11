@@ -93,6 +93,7 @@ void rec_and_play(int socket)
     short highpass = 8000 * n / 44100;
     sample_t *buf = calloc(sizeof(sample_t), n);
     sample_t *bufY = calloc(sizeof(sample_t), n);
+    sample_t *buf_recv = calloc(sizeof(sample_t), n);
     complex double *X = calloc(sizeof(complex double), n);
     complex double *Y = calloc(sizeof(complex double), n);
     fcmdr = popen(cmdr, "r");
@@ -102,7 +103,7 @@ void rec_and_play(int socket)
     int sound_diff = INT_MIN;
     //雑音修正用変数
     double s = 0;
-    double a = 0.1;
+    double a = 0.15;
     while (1)
     {
         //録音データを送る
@@ -144,15 +145,15 @@ void rec_and_play(int socket)
         /* IFFT -> Z */
         ifft(Y, X, n);
         /* 標本の配列に変換 */
-        complex_to_sample(X, buf, n);
+        complex_to_sample(X, buf_recv, n);
         //音の最初のズレを補正
         if (sound_diff != INT_MIN)
         {
-            buf[0] = (sound_diff + buf[0]) / 2;
+            buf_recv[0] = (sound_diff + buf_recv[0]) / 2;
         }
-        sound_diff = buf[n - 1];
+        sound_diff = buf_recv[n - 1];
         // 再生ファイルに出力
-        fwrite(buf, 1, n, fcmdp);
+        fwrite(buf_recv, 1, n, fcmdp);
     }
     pclose(fcmdr);
 }
