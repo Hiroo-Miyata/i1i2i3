@@ -88,9 +88,9 @@ void rec_and_play(int socket)
     FILE *fcmdr; /* 録音FILEパス */
     FILE *fcmdp;
 
-    long n = 8192 * 4;
+    long n = 512;
     short lowpass = 100 * n / 44100;
-    short highpass = 8000 * n / 44100;
+    short highpass = 6000 * n / 44100;
     sample_t *buf = calloc(sizeof(sample_t), n);
     sample_t *bufY = calloc(sizeof(sample_t), n);
     sample_t *buf_recv = calloc(sizeof(sample_t), n);
@@ -106,6 +106,8 @@ void rec_and_play(int socket)
     //雑音修正用変数
     double s = 0;
     double a = 0.15;
+
+    printf("%ld", sizeof(complex double));
     while (1)
     {
         //録音データを送る
@@ -128,22 +130,17 @@ void rec_and_play(int socket)
                 tmp = SHRT_MAX;
             }
             bufY[i] = (sample_t)tmp;
-
-            // if (bufY[i] != buf[i])
-            // {
-            //     fprintf(stderr, "\n i: %d, buf[i]: %d, bufY[i]: %d \n", i, buf[i], bufY[i]);
-            //     exit(1);
-            // }
         }
         /* 複素数の配列に変換 */
         sample_to_complex(bufY, X, n);
         /* FFT -> Y */
         fft(X, Y, n);
-        bandpass(Y, lowpass, highpass, n);
-        send(socket, Y, n, 0);
+        // bandpass(Y, lowpass, highpass, n);
+        send(socket, Y, sizeof(complex double) * n, 0);
 
-        //送られてたデータを再生
-        read(socket, Yrecv, n);
+        //送られてたデータを格納
+        m = read(socket, Yrecv, sizeof(complex double) * n);
+
         /* IFFT -> Z */
         ifft(Yrecv, Xrecv, n);
         /* 標本の配列に変換 */
